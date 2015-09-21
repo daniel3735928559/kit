@@ -5,7 +5,16 @@ var Kit = function(args){
 	    readOnly: false, 
 	    gutters: ["CodeMirror-linenumbers"]
     });
-    this.plugins = {};
+    this.plugins = {
+	"guppy":{
+	    "edit":function(){
+		
+	    },
+	    "data":{
+		"m0":{"xml":"<m><e>x+1</e></m>","snippet":"x+1"}
+	    }
+	}
+    };
     this.raw = "";
     this.editor.setOption("theme", "default");
     this.editor.setValue(this.raw);
@@ -18,7 +27,8 @@ var Kit = function(args){
 	    var ext = this_kit.current_extension();
 	    console.log(ext);
 	    if(ext){
-		//
+		if(!ext.plugin) return CodeMirror.Pass;
+		// Find plugin by plugin id and show editor
 	    }
 	    else{
 		return CodeMirror.Pass;
@@ -36,16 +46,45 @@ var Kit = function(args){
 }
 
 Kit.prototype.render = function(){
-    var pars = this.editor.getValue().split(/[ \t]*\n([ \t]*\n)+/);
+    //var pars = this.editor.getValue().split(/[ \t]*\n([ \t]*\n)+/);
+    // for(var i = 0; i < pars.length; i += 2){
+    // 	var new_p = document.createElement("p");
+    // 	new_p.appendChild(document.createTextNode(pars[i]));
+    // 	output.appendChild(new_p);
+    // }
+    
     var output = document.createElement("span");
-    for(var i = 0; i < pars.length; i += 2){
-	var new_p = document.createElement("p");
-	new_p.appendChild(document.createTextNode(pars[i]));
-	output.appendChild(new_p);
+    var html_content = markdown.toHTML(this.editor.getValue());
+    var exts = Kit.find_extensions(html_content);
+    console.log("LLL",exts.length);
+    for(var i = exts.length-1; i >= 0; i--){
+	var e = exts[i];
+	console.log(e);
+	if(e.plugin in this.plugins && e.id in this.plugins[e.plugin].data){
+	    console.log(this.plugins[e.plugin].data[e.id].xml);
+	}
     }
-    alert(this.editor.getValue());
+    output.innerHTML = html_content;
     return output;
 }
+
+Kit.parse_extension = function(text,left,right){
+    console.log(text);
+    var matches = text.match(/^\[\[([a-zA-Z_][a-zA-Z_0-9]*)\.([a-zA-Z_][a-zA-Z_0-9]*)[ \t]*(?:\|[ \t]*(.*?))?\]\]/);
+    if(!matches) return /^\[\[[a-zA-Z_][a-zA-Z_0-9]*\]\]/.test(text) ? {'plugin':text.substring(2,text.length-2),'left':left,'right':right} : {'plugin':null};
+    return {'plugin':matches[1],'id':matches[2],'text':matches[3],'left':left,'right':right};
+}
+
+Kit.find_extensions = function(text){
+    var re = /\[\[[a-zA-Z_][a-zA-Z_0-9]*\.[a-zA-Z_][a-zA-Z_0-9]*[ \t]*(\|[ \t]*.*?)?\]\]/g;
+    ans = [];
+    while((match = re.exec(text)) != null) {
+	console.log(match.index);
+	ans.push(Kit.parse_extension(match[0],match.index,match.index+match[0].length));
+    }
+    return ans;
+}
+
 
 Kit.prototype.current_extension = function(){
     var cursor = this.editor.getCursor();
@@ -62,13 +101,10 @@ Kit.prototype.current_extension = function(){
 	    console.log("Found it");
 	    right_delim += 2;
 	    text = text.substring(0,right_delim+2);
-	    console.log(text);
-	    var matches = text.match(/^\[\[([a-zA-Z_][a-zA-Z_0-9]*)\.([a-zA-Z_][a-zA-Z_0-9]*)[ \t]*(?:\|[ \t]*(.*))?\]\]/);
-	    if(!matches) return /^\[\[[a-zA-Z_][a-zA-Z_0-9]*\]\]/.test(text) ? {'plugin':text.substring(2,text.length-2),'left':offset,'right':right_delim + offset} : {'plugin':null};
-	    return {'plugin':matches[1],'id':matches[2],'text':matches[3],'left':offset,'right':right_delim + offset};
+	    return Kit.parse_extension(text,offset,right_delim + offset);
 	}
 	else{
-	    var left_delim = text.substring(1).indexOf("[[");
+	    left_delim = text.substring(1).indexOf("[[");
 	    offset += left_delim;
 	}
     }
