@@ -5,14 +5,22 @@ var Kit = function(args){
 	    readOnly: false, 
 	    gutters: ["CodeMirror-linenumbers"]
     });
-    this.plugins = {
+    this.plugins = {"guppy":{},
+		    "statement":{}};
+    this.init_plugins = function(){
+	var self = this;
+	for(var p in this.plugins){
+	    var req = new XMLHttpRequest();
+	    req.onload = function(){
+		self.plugins[p].xsl = (new window.DOMParser()).parseFromString(this.responseText, "text/xml");
+	    };
+	    req.open("get", symbols_path, true);
+	    req.send();
+	}
+    }
+    this.plugin_data = {
 	"guppy":{
-	    "edit":function(){
-		
-	    },
-	    "data":{
-		"m0":{"xml":"<m><e>x+1</e></m>","snippet":"x+1"}
-	    }
+	    "m0":{"xml":"<m><e>x+1</e></m>","snippet":"x+1"}
 	}
     };
     this.raw = "";
@@ -60,8 +68,8 @@ Kit.prototype.render = function(){
     for(var i = exts.length-1; i >= 0; i--){
 	var e = exts[i];
 	console.log(e);
-	if(e.plugin in this.plugins && e.id in this.plugins[e.plugin].data){
-	    console.log(this.plugins[e.plugin].data[e.id].xml);
+	if(e.plugin in this.plugins && e.id in this.plugin_data[e.plugin]){
+	    console.log(this.plugin_data[e.plugin][e.id].xml);
 	}
     }
     output.innerHTML = html_content;
@@ -77,7 +85,8 @@ Kit.parse_extension = function(text,left,right){
 
 Kit.find_extensions = function(text){
     var re = /\[\[[a-zA-Z_][a-zA-Z_0-9]*\.[a-zA-Z_][a-zA-Z_0-9]*[ \t]*(\|[ \t]*.*?)?\]\]/g;
-    ans = [];
+    var ans = [];
+    var match;
     while((match = re.exec(text)) != null) {
 	console.log(match.index);
 	ans.push(Kit.parse_extension(match[0],match.index,match.index+match[0].length));
@@ -97,15 +106,18 @@ Kit.prototype.current_extension = function(){
 	text = text.substring(left_delim);
 	right_delim = text.indexOf("]]");
 	console.log(text,left_delim,right_delim,cursor.ch);
-	if(left_delim < cursor.ch && cursor.ch < right_delim + 2){
+	var left = offset;
+	var right = right_delim >= 0 ? offset + right_delim + 2: -1;
+	if(left < cursor.ch && cursor.ch < right){
 	    console.log("Found it");
 	    right_delim += 2;
-	    text = text.substring(0,right_delim+2);
-	    return Kit.parse_extension(text,offset,right_delim + offset);
+	    text = text.substring(0,right_delim);
+	    return Kit.parse_extension(text,left,right);
 	}
 	else{
-	    left_delim = text.substring(1).indexOf("[[");
-	    offset += left_delim;
+	    text = text.substring(1);
+	    left_delim = text.indexOf("[[");
+	    offset += left_delim+1;
 	}
     }
 }
