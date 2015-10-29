@@ -10,14 +10,21 @@ var Kit = function(args){
     this.init_plugins = function(){
 	var self = this;
 	for(var p in this.plugins){
-	    var req = new XMLHttpRequest();
-	    req.onload = function(){
-		self.plugins[p].xsl = (new window.DOMParser()).parseFromString(this.responseText, "text/xml");
-	    };
-	    req.open("get", symbols_path, true);
-	    req.send();
+	    (function(p){
+		var req = new XMLHttpRequest();
+		req.onload = function(){
+		    console.log(p);
+		var xsltProcessor = new XSLTProcessor();
+		    xsltProcessor.importStylesheet((new window.DOMParser()).parseFromString(this.responseText, "text/xml"));
+		    self.plugins[p].xsl = xsltProcessor;
+		    console.log(self.plugins);
+		};
+		req.open("get", "plugins/"+p+"/transform.xsl", true);
+		req.send();
+	    })(p);
 	}
     }
+    this.init_plugins();
     this.plugin_data = {
 	"guppy":{
 	    "m0":{"xml":"<m><e>x+1</e></m>","snippet":"x+1"}
@@ -60,19 +67,26 @@ Kit.prototype.render = function(){
     // 	new_p.appendChild(document.createTextNode(pars[i]));
     // 	output.appendChild(new_p);
     // }
-    
-    var output = document.createElement("span");
-    var html_content = markdown.toHTML(this.editor.getValue());
-    var exts = Kit.find_extensions(html_content);
-    console.log("LLL",exts.length);
-    for(var i = exts.length-1; i >= 0; i--){
-	var e = exts[i];
-	console.log(e);
-	if(e.plugin in this.plugins && e.id in this.plugin_data[e.plugin]){
-	    console.log(this.plugin_data[e.plugin][e.id].xml);
-	}
+    var doc = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><node>\n"+this.editor.getValue()+"\n</node>";
+    var base = (new window.DOMParser()).parseFromString(doc, "text/xml");
+    console.log(doc,base);
+    for(var p in this.plugins){
+	if(p != "statement") continue;
+	console.log(p);
+	base = this.plugins[p].xsl.transformToDocument(base);
+	console.log(base);
     }
-    output.innerHTML = html_content;
+    var output = document.createElement("span");
+    // var exts = Kit.find_extensions(html_content);
+    // console.log("LLL",exts.length);
+    // for(var i = exts.length-1; i >= 0; i--){
+    // 	var e = exts[i];
+    // 	console.log(e);
+    // 	if(e.plugin in this.plugins && e.id in this.plugin_data[e.plugin]){
+    // 	    console.log(this.plugin_data[e.plugin][e.id].xml);
+    // 	}
+    // }
+    output.innerHTML = (new XMLSerializer()).serializeToString(base);
     return output;
 }
 
