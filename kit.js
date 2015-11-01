@@ -1,30 +1,32 @@
 var Kit = function(args){
+    this.cur_id = 0;
     this.editor = CodeMirror.fromTextArea(args['input'], {
 	    lineNumbers: true,
 	    styleActiveLine: true,
 	    readOnly: false, 
 	    gutters: ["CodeMirror-linenumbers"]
     });
-    this.plugins = {"guppy":{},
-		    "statement":{}};
-    this.init_plugins = function(){
-	var self = this;
-	for(var p in this.plugins){
-	    (function(p){
-		var req = new XMLHttpRequest();
-		req.onload = function(){
-		    console.log(p);
+    this.plugins = {"statement":KitTagPlugin("statement",this),
+		    "definition":KitTagPlugin("definition",this),
+		    "proof":KitTagPlugin("proof",this),
+		    "checklist":new KitChecklistPlugin(this)
+		   };
+    this.transforms = {"statement":{},"checklist":{}}
+    var self = this;
+    for(var p in this.transforms){
+	(function(p){
+	    var req = new XMLHttpRequest();
+	    req.onload = function(){
+		console.log(p);
 		var xsltProcessor = new XSLTProcessor();
-		    xsltProcessor.importStylesheet((new window.DOMParser()).parseFromString(this.responseText, "text/xml"));
-		    self.plugins[p].xsl = xsltProcessor;
-		    console.log(self.plugins);
-		};
-		req.open("get", "plugins/"+p+"/transform.xsl", true);
-		req.send();
-	    })(p);
-	}
+		xsltProcessor.importStylesheet((new window.DOMParser()).parseFromString(this.responseText, "text/xml"));
+		self.transforms[p].xsl = xsltProcessor;
+		console.log(self.plugins);
+	    };
+	    req.open("get", "plugins/"+p+"/transform.xsl", true);
+	    req.send();
+	})(p);
     }
-    this.init_plugins();
     this.plugin_data = {
 	"guppy":{
 	    "m0":{"xml":"<m><e>x+1</e></m>","snippet":"x+1"}
@@ -52,12 +54,52 @@ var Kit = function(args){
 	'Ctrl-Enter': function(cm) {
 	    this_kit.output(this_kit.render());
 	},
+	'Shift-Ctrl-S': function(cm) {
+	    var to_insert = self.plugins.statement.insert();
+	    cm.replaceSelection(to_insert.text);
+	    var cur = cm.getCursor();
+	    cm.setCursor({'line':cur.line,'ch':cur.ch - to_insert.text.length + to_insert.cursor});
+	},
+	'Shift-Ctrl-P': function(cm) {
+	    var to_insert = self.plugins.proof.insert();
+	    cm.replaceSelection(to_insert.text);
+	    var cur = cm.getCursor();
+	    cm.setCursor({'line':cur.line,'ch':cur.ch - to_insert.text.length + to_insert.cursor});
+	},
+	'Shift-Ctrl-D': function(cm) {
+	    var to_insert = self.plugins.definition.insert();
+	    cm.replaceSelection(to_insert.text);
+	    var cur = cm.getCursor();
+	    cm.setCursor({'line':cur.line,'ch':cur.ch - to_insert.text.length + to_insert.cursor});
+	},
+	'Shift-Ctrl-C': function(cm) {
+	    var to_insert = self.plugins.checklist.insert();
+	    cm.replaceSelection(to_insert.text);
+	    var cur = cm.getCursor();
+	    cm.setCursor({'line':cur.line,'ch':cur.ch - to_insert.text.length + to_insert.cursor});
+	},
 	'Shift-Ctrl-E': function(cm) {
 	    cm.replaceSelection("[[]]");
 	    var cur = cm.getCursor();
 	    cm.setCursor({'line':cur.line,'ch':cur.ch-2});
 	},
     });
+}
+
+Kit.prototype.gen_id = function(){
+    return ++this.cur_id;
+}
+
+Kit.prototype.get_links = function(){
+
+}
+
+Kit.prototype.get_text = function(){
+
+}
+
+Kit.prototype.get_ids = function(){
+
 }
 
 Kit.prototype.render = function(){
@@ -70,10 +112,9 @@ Kit.prototype.render = function(){
     var doc = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><node>\n"+this.editor.getValue()+"\n</node>";
     var base = (new window.DOMParser()).parseFromString(doc, "text/xml");
     console.log(doc,base);
-    for(var p in this.plugins){
-	if(p != "statement") continue;
+    for(var p in this.transforms){
 	console.log(p);
-	base = this.plugins[p].xsl.transformToDocument(base);
+	base = this.transforms[p].xsl.transformToDocument(base);
 	console.log(base);
     }
     var output = document.createElement("span");
@@ -89,6 +130,19 @@ Kit.prototype.render = function(){
     output.innerHTML = (new XMLSerializer()).serializeToString(base);
     return output;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 Kit.parse_extension = function(text,left,right){
     console.log(text);
