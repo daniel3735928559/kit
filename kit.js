@@ -1,90 +1,82 @@
 var Kit = function(args){
+    var self = this;
     this.cur_id = 0;
+    this.name = "";
+    this.id = "";
+    this.raw = "";
+
+    
     this.editor = CodeMirror.fromTextArea(args['input'], {
 	    lineNumbers: true,
 	    styleActiveLine: true,
 	    readOnly: false, 
 	    gutters: ["CodeMirror-linenumbers"]
     });
-    this.plugins = {"statement":KitTagPlugin("statement",this),
-		    "definition":KitTagPlugin("definition",this),
-		    "proof":KitTagPlugin("proof",this),
-		    "checklist":new KitChecklistPlugin(this)
-		   };
-    this.transforms = {"statement":{},"checklist":{}}
-    var self = this;
-    for(var p in this.transforms){
-	(function(p){
-	    var req = new XMLHttpRequest();
-	    req.onload = function(){
-		console.log(p);
-		var xsltProcessor = new XSLTProcessor();
-		xsltProcessor.importStylesheet((new window.DOMParser()).parseFromString(this.responseText, "text/xml"));
-		self.transforms[p].xsl = xsltProcessor;
-		console.log(self.plugins);
-	    };
-	    req.open("get", "plugins/"+p+"/transform.xsl", true);
-	    req.send();
-	})(p);
-    }
-    this.plugin_data = {
-	"guppy":{
-	    "m0":{"xml":"<m><e>x+1</e></m>","snippet":"x+1"}
-	}
-    };
-    this.raw = "";
     this.editor.setOption("theme", "default");
+    this.editor.kit_instance = this;
     this.editor.setValue(this.raw);
     this.editor.setSize(null, "75%");
     //this.editor.setSize(null, (this.raw.split("\n").length + 2)*(this.editor.defaultTextHeight()) + 10);
-    var this_kit = this;
-    this.output = args['output'];
-    this.editor.setOption("extraKeys", {
-	'Enter': function(cm) {
-	    var ext = this_kit.current_extension();
-	    console.log(ext);
-	    if(ext){
-		if(!ext.plugin) return CodeMirror.Pass;
-		// Find plugin by plugin id and show editor
-	    }
-	    else{
-		return CodeMirror.Pass;
-	    }
-	},
-	'Ctrl-Enter': function(cm) {
-	    this_kit.output(this_kit.render());
-	},
-	'Shift-Ctrl-S': function(cm) {
-	    var to_insert = self.plugins.statement.insert();
-	    cm.replaceSelection(to_insert.text);
-	    var cur = cm.getCursor();
-	    cm.setCursor({'line':cur.line,'ch':cur.ch - to_insert.text.length + to_insert.cursor});
-	},
-	'Shift-Ctrl-P': function(cm) {
-	    var to_insert = self.plugins.proof.insert();
-	    cm.replaceSelection(to_insert.text);
-	    var cur = cm.getCursor();
-	    cm.setCursor({'line':cur.line,'ch':cur.ch - to_insert.text.length + to_insert.cursor});
-	},
-	'Shift-Ctrl-D': function(cm) {
-	    var to_insert = self.plugins.definition.insert();
-	    cm.replaceSelection(to_insert.text);
-	    var cur = cm.getCursor();
-	    cm.setCursor({'line':cur.line,'ch':cur.ch - to_insert.text.length + to_insert.cursor});
-	},
-	'Shift-Ctrl-C': function(cm) {
-	    var to_insert = self.plugins.checklist.insert();
-	    cm.replaceSelection(to_insert.text);
-	    var cur = cm.getCursor();
-	    cm.setCursor({'line':cur.line,'ch':cur.ch - to_insert.text.length + to_insert.cursor});
-	},
-	'Shift-Ctrl-E': function(cm) {
-	    cm.replaceSelection("[[]]");
-	    var cur = cm.getCursor();
-	    cm.setCursor({'line':cur.line,'ch':cur.ch-2});
-	},
-    });
+    
+    this.plugins = Kit.test_plugins;
+    this.output = args.output;
+    // Set up keys from plugins and defaults: 
+    
+    var key_dict = this.plugins.keys;
+    // key_dict['Enter'] = function(cm) {
+    // 	var ext = self.current_extension();
+    // 	console.log(ext);
+    // 	if(ext){
+    // 	    if(!ext.plugin) return CodeMirror.Pass;
+    // 	    // Find plugin by plugin id and show editor
+    // 	}
+    // 	else{
+    // 	    return CodeMirror.Pass;
+    // 	}
+    // };
+    key_dict['Ctrl-Enter'] = function(cm) {
+	self.output(self.render());
+    };
+    
+    this.editor.setOption("extraKeys", key_dict);
 }
+
+Kit.setup_plugins = function(plugins, base_url){
+    var transforms = {};
+    var keys = {};
+    var buttons = {};
+    for(var p in plugins){
+	(function(p){
+	    var req = new XMLHttpRequest();
+	    req.onload = function(){
+		var xsltProcessor = new XSLTProcessor();
+		xsltProcessor.importStylesheet((new window.DOMParser()).parseFromString(this.responseText, "text/xml"));
+		transforms[p] = {"xsl":xsltProcessor};
+	    };
+	    req.open("get", base_url+"/"+p+"/transform.xsl", true);
+	    req.send();
+	})(p);
+    }
+    for(var p in plugins){
+	for(var i = 0; i < plugins[p].functions.length; i++){
+	    var f = plugins[p].functions[i];
+	    if(!(f.key in keys)) keys[f.key] = f.func;
+	    if(!(f.name in buttons)) buttons[f.name] = f.func;
+	}
+    }
+    return {"plugins":plugins,
+	    "transforms":transforms,
+	    "keys":keys,
+	    "buttons":buttons}
+}
+
+Kit.test_plugins = Kit.setup_plugins({"argument":new KitArgumentPlugin(),
+				      "av":new KitAVPlugin(),
+				      //"guppy":new KitGuppyPlugin(),
+				      "checklist":new KitChecklistPlugin(),
+				      "code":new KitCodePlugin(),
+				      //"category":new KitCategoryPlugin()
+				     }, "./plugins");
 
 Kit.prototype.gen_id = function(){
     return ++this.cur_id;
@@ -102,6 +94,17 @@ Kit.prototype.get_ids = function(){
 
 }
 
+Kit.prototype.set_doc = function(doc){
+    var base = (new window.DOMParser()).parseFromString(doc, "text/xml").documentRoot;
+    this.name = base.getAttribute("name");
+    this.id = base.getAttribute("id");
+    var text = "";
+    for(var n = base.firstChild; n != null; n = n.nextSibling){
+	text += (new XMLSerializer()).serializeToString(n);
+    }
+    this.editor.setValue(text);
+}
+
 Kit.prototype.render = function(){
     //var pars = this.editor.getValue().split(/[ \t]*\n([ \t]*\n)+/);
     // for(var i = 0; i < pars.length; i += 2){
@@ -109,12 +112,12 @@ Kit.prototype.render = function(){
     // 	new_p.appendChild(document.createTextNode(pars[i]));
     // 	output.appendChild(new_p);
     // }
-    var doc = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><node>\n"+this.editor.getValue()+"\n</node>";
+    var doc = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><node name=\"\">\n"+this.editor.getValue()+"\n</node>";
     var base = (new window.DOMParser()).parseFromString(doc, "text/xml");
     console.log(doc,base);
-    for(var p in this.transforms){
+    for(var p in this.plugins.transforms){
 	console.log(p);
-	base = this.transforms[p].xsl.transformToDocument(base);
+	base = this.plugins.transforms[p].xsl.transformToDocument(base);
 	console.log(base);
     }
     var output = document.createElement("span");
@@ -189,3 +192,4 @@ Kit.prototype.current_extension = function(){
 	}
     }
 }
+

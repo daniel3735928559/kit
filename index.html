@@ -4,8 +4,12 @@
     <!-- <link rel="stylesheet" type="text/css" href="kit.css"> -->
     <link rel="stylesheet" href="/lib/codemirror/codemirror.css">
     <script src="/lib/codemirror/codemirror.js"></script>
-    <script type="text/javascript" src="plugins/statement/plugin.js"></script>
+    <script type="text/javascript" src="plugins/argument/plugin.js"></script>
     <script type="text/javascript" src="plugins/checklist/plugin.js"></script>
+    <script type="text/javascript" src="plugins/category/plugin.js"></script>
+    <script type="text/javascript" src="plugins/draw/plugin.js"></script>
+    <script type="text/javascript" src="plugins/code/plugin.js"></script>
+    <script type="text/javascript" src="plugins/av/plugin.js"></script>
     <script type="text/javascript" src="kit.js"></script>
   </head>
   <body>
@@ -14,13 +18,15 @@
     </div>
     <div style="display:inline-block;border:1px solid black;" id="out"></div>
     <script type="text/javascript">
-      var k = new Kit(
-      {'input':document.getElementById("in"),
-      'output':function(doc){
-                   document.getElementById("out").innerHTML = "";
-                   document.getElementById("out").appendChild(doc);
-                }
-      });
+      
+var k = new Kit(
+    {'input':document.getElementById("in"),
+     'output':function(doc){
+         document.getElementById("out").innerHTML = "";
+         document.getElementById("out").appendChild(doc);
+     }
+    });
+
     </script>
   </body>
 </html>

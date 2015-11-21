@@ -1,4 +1,0 @@
-{"name":"statement",
- "triggers":{"Ctrl-Alt-S":"statement",
-	     "Ctrl-Alt-P":"proof"}
-}
