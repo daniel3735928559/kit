@@ -7,15 +7,61 @@ var Kit = function(args){
 
     
     this.editor = CodeMirror.fromTextArea(args['input'], {
-	    lineNumbers: true,
-	    styleActiveLine: true,
-	    readOnly: false, 
-	    gutters: ["CodeMirror-linenumbers"]
+	lineNumbers: true,
+	mode: "text/xml",
+	styleActiveLine: true,
+	readOnly: false, 
+	foldGutter: true,
+	gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"]
     });
     this.editor.setOption("theme", "default");
     this.editor.kit_instance = this;
     this.editor.setValue(this.raw);
     this.editor.setSize(null, "75%");
+    this.editor.on("beforeChange", function (cm, change) {
+	var cur = cm.getCursor();
+	var tag = CodeMirror.findMatchingTag(cm, change.from) || CodeMirror.findMatchingTag(cm, change.to);
+	var in_tag = true;
+	var on_inner_boundary = false;
+	var on_outer_boundary = false;
+	var following_tag = false;
+	if(tag){
+	    on_outer_boundary = (cur.line == tag.open.from.line && cur.ch == tag.open.from.ch) || (cur.line == tag.close.to.line && cur.ch == tag.close.to.ch);
+	    on_inner_boundary = (cur.line == tag.open.to.line && cur.ch == tag.open.to.ch) || (cur.line == tag.close.from.line && cur.ch == tag.close.from.ch);
+	    following_tag = (cur.line == tag.open.to.line && cur.ch == tag.open.to.ch) || (cur.line == tag.close.to.line && cur.ch == tag.close.to.ch);
+	    console.log("OC",JSON.stringify(tag), JSON.stringify(cur));
+	}
+	else in_tag = false;
+	if(!in_tag || on_outer_boundary || on_inner_boundary){
+	    tag = CodeMirror.findEnclosingTag(cm, change.from) || CodeMirror.findEnclosingTag(cm, change.to);
+	    in_tag = false;
+	}
+	if(tag){
+	    on_outer_boundary = (cur.line == tag.open.from.line && cur.ch == tag.open.from.ch) || (cur.line == tag.close.to.line && cur.ch == tag.close.to.ch);
+	    on_inner_boundary = (cur.line == tag.open.to.line && cur.ch == tag.open.to.ch) || (cur.line == tag.close.from.line && cur.ch == tag.close.from.ch);
+	    following_tag = (cur.line == tag.open.to.line && cur.ch == tag.open.to.ch) || (cur.line == tag.close.to.line && cur.ch == tag.close.to.ch);
+	    console.log("OC",JSON.stringify(tag), JSON.stringify(cur));
+	}
+	console.log(tag, in_tag, on_inner_boundary, on_outer_boundary, following_tag, cur);
+	if(tag && tag.open && tag.open.tag in self.plugins.tags){
+	    console.log("ISTEXT",self.plugins.tags[tag.open.tag].text);
+	    //if(in_tag && cur.line == tag.open.from.line && cur.ch == tag.open.from.ch) return;
+	    if(change.origin == "+delete"){
+		if(!self.plugins.tags[tag.open.tag].text)
+		    change.update(tag.open.from, tag.close.to, ['']);
+		else if(in_tag && following_tag)
+		    change.update(tag.open.from, tag.close.to, [cm.getRange(tag.open.to, tag.close.from)]);
+	    }
+	    else if(change.origin == "+input" && !self.plugins.tags[tag.open.tag].text){
+	    	var p = self.plugins.tags[tag.open.tag];
+		console.log("ASD",p);
+	    	if(change.update) change.update(tag.open.to, tag.close.from, self.plugins.plugins[p.plugin].edit(self.editor, tag.open.to, tag.close.from));
+	    }
+	    else if(in_tag && !on_outer_boundary && !on_inner_boundary){
+		change.cancel();
+	    }
+	}
+    });
     //this.editor.setSize(null, (this.raw.split("\n").length + 2)*(this.editor.defaultTextHeight()) + 10);
     
     this.plugins = Kit.test_plugins;
@@ -24,15 +70,14 @@ var Kit = function(args){
     
     var key_dict = this.plugins.keys;
     // key_dict['Enter'] = function(cm) {
-    // 	var ext = self.current_extension();
-    // 	console.log(ext);
-    // 	if(ext){
-    // 	    if(!ext.plugin) return CodeMirror.Pass;
-    // 	    // Find plugin by plugin id and show editor
+    // 	var tag = CodeMirror.findMatchingTag(cm, cm.getCursor()) || CodeMirror.findEnclosingTag(cm, cm.getCursor());
+    // 	if(tag && tag.open.tag in self.plugins.tags && !self.plugins.tags[tag.open.tag].text){
+    // 	    console.log("T",tag.open.tag,tag);
+    // 	    var p = self.plugins.tags[tag.open.tag];
+    // 	    self.plugins.plugins[p.plugin].edit(cm, tag.open.to, tag.close.from);
+    // 	    return;
     // 	}
-    // 	else{
-    // 	    return CodeMirror.Pass;
-    // 	}
+    // 	return CodeMirror.Pass;
     // };
     key_dict['Ctrl-Enter'] = function(cm) {
 	self.output(self.render());
@@ -42,39 +87,28 @@ var Kit = function(args){
 }
 
 Kit.setup_plugins = function(plugins, base_url){
-    var transforms = {};
     var keys = {};
     var buttons = {};
-    for(var p in plugins){
-	(function(p){
-	    var req = new XMLHttpRequest();
-	    req.onload = function(){
-		var xsltProcessor = new XSLTProcessor();
-		xsltProcessor.importStylesheet((new window.DOMParser()).parseFromString(this.responseText, "text/xml"));
-		transforms[p] = {"xsl":xsltProcessor};
-	    };
-	    req.open("get", base_url+"/"+p+"/transform.xsl", true);
-	    req.send();
-	})(p);
-    }
+    var tags = {};
     for(var p in plugins){
 	for(var i = 0; i < plugins[p].functions.length; i++){
 	    var f = plugins[p].functions[i];
 	    if(!(f.key in keys)) keys[f.key] = f.func;
 	    if(!(f.name in buttons)) buttons[f.name] = f.func;
+	    if(!(f.tag in tags)) tags[f.tag] = {"plugin":p,"text":plugins[p].functions[i].text};
 	}
     }
     return {"plugins":plugins,
-	    "transforms":transforms,
 	    "keys":keys,
-	    "buttons":buttons}
+	    "buttons":buttons,
+	    "tags":tags}
 }
 
 Kit.test_plugins = Kit.setup_plugins({"argument":new KitArgumentPlugin(),
-				      "av":new KitAVPlugin(),
+				      //"av":new KitAVPlugin(),
 				      //"guppy":new KitGuppyPlugin(),
-				      "checklist":new KitChecklistPlugin(),
-				      "code":new KitCodePlugin(),
+				      //"checklist":new KitChecklistPlugin(),
+				      //"code":new KitCodePlugin(),
 				      //"category":new KitCategoryPlugin()
 				     }, "./plugins");
 
@@ -115,58 +149,25 @@ Kit.prototype.render = function(){
     var doc = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><node name=\"\">\n"+this.editor.getValue()+"\n</node>";
     var base = (new window.DOMParser()).parseFromString(doc, "text/xml");
     console.log(doc,base);
-    for(var p in this.plugins.transforms){
-	console.log(p);
-	base = this.plugins.transforms[p].xsl.transformToDocument(base);
+    for(var t in this.plugins.tags){
+	console.log("AAA",t);
+	var plugin = this.plugins.plugins[this.plugins.tags[t]];
+	var nodes = base.getElementsByTagName(t);
+	for(var i = 0; i < nodes.length; i++){
+	    console.log("ASDA",nodes[i]);
+	    var r = plugin.render(nodes[i].cloneNode(true), base);
+	    console.log(r,nodes[i]);
+	    nodes[i].parentNode.replaceChild(r, nodes[i]);
+	    
+	}
 	console.log(base);
     }
     var output = document.createElement("span");
-    // var exts = Kit.find_extensions(html_content);
-    // console.log("LLL",exts.length);
-    // for(var i = exts.length-1; i >= 0; i--){
-    // 	var e = exts[i];
-    // 	console.log(e);
-    // 	if(e.plugin in this.plugins && e.id in this.plugin_data[e.plugin]){
-    // 	    console.log(this.plugin_data[e.plugin][e.id].xml);
-    // 	}
-    // }
     output.innerHTML = (new XMLSerializer()).serializeToString(base);
     return output;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-Kit.parse_extension = function(text,left,right){
-    console.log(text);
-    var matches = text.match(/^\[\[([a-zA-Z_][a-zA-Z_0-9]*)\.([a-zA-Z_][a-zA-Z_0-9]*)[ \t]*(?:\|[ \t]*(.*?))?\]\]/);
-    if(!matches) return /^\[\[[a-zA-Z_][a-zA-Z_0-9]*\]\]/.test(text) ? {'plugin':text.substring(2,text.length-2),'left':left,'right':right} : {'plugin':null};
-    return {'plugin':matches[1],'id':matches[2],'text':matches[3],'left':left,'right':right};
-}
-
-Kit.find_extensions = function(text){
-    var re = /\[\[[a-zA-Z_][a-zA-Z_0-9]*\.[a-zA-Z_][a-zA-Z_0-9]*[ \t]*(\|[ \t]*.*?)?\]\]/g;
-    var ans = [];
-    var match;
-    while((match = re.exec(text)) != null) {
-	console.log(match.index);
-	ans.push(Kit.parse_extension(match[0],match.index,match.index+match[0].length));
-    }
-    return ans;
-}
-
-
-Kit.prototype.current_extension = function(){
+Kit.prototype.tag = function(){
     var cursor = this.editor.getCursor();
     var text = this.editor.getLine(cursor.line);
     var left_delim = text.indexOf("[[");
