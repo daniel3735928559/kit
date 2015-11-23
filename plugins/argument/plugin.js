@@ -57,7 +57,7 @@ KitArgumentPlugin.prototype.render = function(node, doc){
 }
 
 KitArgumentPlugin.prototype.insert = function(type, id){
-    var start = "<"+type+" id=\""+id+"\" name=\"\">";
+    var start = "<"+type+" id=\""+id+"\">";
     var end = "</"+type+">";
     return {"data":start+end,"cursor":start.length};
 }

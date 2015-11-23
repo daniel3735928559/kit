@@ -4,7 +4,6 @@
   <xsl:output method="xml" indent="no" omit-xml-declaration="yes" />
   
   <xsl:template match="statement">
-    <a name="{@id}"></a>
     <xsl:choose>
       <xsl:when test="@type='lemma'">
 	<p><b>Lemma (<xsl:value-of select="@name" />):</b></p>
@@ -28,15 +27,13 @@
     </xsl:choose>
   </xsl:template>
   
-  <xsl:template match="proof">
-    <p><b>Proof: </b></p>
+  <xsl:template match="definition">
     <xsl:apply-templates select="text()|*" />
   </xsl:template>
   
-  <xsl:template match="@*|node()">
-    <xsl:copy>
-      <xsl:apply-templates select="@*|node()"/>
-    </xsl:copy>
+  <xsl:template match="proof">
+    <p><b>Proof: </b></p>
+    <xsl:apply-templates select="text()|*" />
   </xsl:template>
   
 </xsl:stylesheet>

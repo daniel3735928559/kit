@@ -18,15 +18,22 @@
     <script type="text/javascript" src="kit.js"></script>
   </head>
   <body>
-    <div>
-      <textarea style="display:inline-block;" id="in"></textarea>
+    <div id="in">
+      <textarea style="display:inline-block;" id="area"></textarea>
     </div>
     <div style="display:inline-block;border:1px solid black;" id="out"></div>
     <script type="text/javascript">
       
 var k = new Kit(
-    {'input':document.getElementById("in"),
+{'input':document.getElementById("area"),
+'container':document.getElementById("in"),
+     'edit':function(){
+         document.getElementById("out").style.display = "none";
+         document.getElementById("in").style.display = "inline-block";
+     },
      'output':function(doc){
+         document.getElementById("in").style.display = "none";
+         document.getElementById("out").style.display = "inline-block";
          document.getElementById("out").innerHTML = "";
          document.getElementById("out").appendChild(doc);
      }
