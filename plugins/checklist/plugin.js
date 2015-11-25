@@ -14,11 +14,11 @@ KitChecklistPlugin = function(){
 	 'tag':"checklist",
 	 'text':true,
 	 'func': function(cm) {
-	     var start = "<checklist id=\""+cm.kit_instance.gen_id()+"\"><item>"
-	     var end = "</item></checklist>";
+	     var start = "<checklist id=\""+cm.kit_instance.gen_id()+"\">\n  <item>"
+	     var end = "</item>\n</checklist>";
 	     cm.replaceSelection(start+end);
 	     var cur = cm.getCursor();
-	     cm.setCursor({'line':cur.line,'ch':cur.ch - end.length + start.length});
+	     cm.setCursor({'line':cur.line-1,'ch':8});
 	 }}
     ];
 }

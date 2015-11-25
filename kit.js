@@ -123,7 +123,7 @@ Kit.setup_plugins = function(plugins, base_url){
 
 Kit.test_plugins = Kit.setup_plugins({"argument":new KitArgumentPlugin(),
 				      //"av":new KitAVPlugin(),
-				      //"guppy":new KitGuppyPlugin(),
+				      "guppy":new KitGuppyPlugin(),
 				      "checklist":new KitChecklistPlugin(),
 				      "code":new KitCodePlugin(),
 				      "draw":new KitDrawPlugin(),

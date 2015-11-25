@@ -42,33 +42,54 @@ KitDrawPlugin.prototype.make_widget = function(id){
     context.strokeStyle = "black";
     context.lineWidth = 1;
     var rad = 1;
-    canvas.addEventListener("mousedown",function(e){
+    var evt_down = function(e){
 	context.beginPath();
 	var rect = canvas.getBoundingClientRect();
-	var mouseX = e.clientX - rect.left;
-	var mouseY = e.clientY - rect.top;
-	context.arc(mouseX, mouseY, rad, 0, 2 * Math.PI, false);
+	var X = 0;
+	var Y = 0;
+	if(e.touches && e.touches.length == 1){
+	    console.log("hi");
+	    X = touch.pageX-touch.target.offsetLeft;
+	    Y = touch.pageY-touch.target.offsetLeft;
+	    e.preventDefault();
+	}
+	else{   
+	    X = e.clientX - rect.left;
+	    Y = e.clientY - rect.top;
+	}
+	context.arc(X, Y, rad, 0, 2 * Math.PI, false);
 	context.fill();
 	self.painting[id] = true;
-	self.mouse[id] = {"x":mouseX,"y":mouseY};
-    });
-    canvas.addEventListener("mousemove",function(e){
+	self.mouse[id] = {"x":X,"y":Y};
+    }
+    var evt_move = function(e){
 	if(!self.painting[id]) return;
-	context.beginPath();
 	var rect = canvas.getBoundingClientRect();
-	var mouseX = e.clientX - rect.left;
-	var mouseY = e.clientY - rect.top;
+	var X = 0, Y = 0;
+	if(e.touches && e.touches.length == 1){
+	    X = touch.pageX-touch.target.offsetLeft;
+	    Y = touch.pageY-touch.target.offsetLeft;
+	    e.preventDefault();
+	}
+	else{   
+	    X = e.clientX - rect.left;
+	    Y = e.clientY - rect.top;
+	}
+	context.beginPath();
 	context.moveTo(self.mouse[id].x, self.mouse[id].y);
-	context.lineTo(mouseX,mouseY);
+	context.lineTo(X,Y);
 	context.stroke();
-	self.mouse[id] = {"x":mouseX,"y":mouseY};
-    });
-    canvas.addEventListener("mouseup",function(e){
+	self.mouse[id] = {"x":X,"y":Y};
+    }
+    var evt_up = function(e){
 	self.painting[id] = false;
-    });
-    canvas.addEventListener("mouseleave",function(e){
-	self.painting[id] = false;
-    });
+    }
+    canvas.addEventListener("mousedown",evt_down);
+    canvas.addEventListener("mousemove",evt_move);
+    canvas.addEventListener("mouseup",evt_up);
+    canvas.addEventListener("mouseleave",evt_up);
+    canvas.addEventListener("touchmove",evt_move, false);
+    canvas.addEventListener("touchstart",evt_down, false);
     this.widgets[id] = widget;
     this.painting[id] = false;
     this.mouse[id] = {};

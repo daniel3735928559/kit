@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
 
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
-  <xsl:output method="xml"/>
+  <xsl:output method="xml" indent="no" omit-xml-declaration="yes" />
   <xsl:param name="cursor">\\color{red}{\\cdot}</xsl:param>
   <xsl:param name="cblank">\\color{red}{[?]}</xsl:param>
   <xsl:param name="blank">\\color{blue}{[?]}</xsl:param>
@@ -51,7 +51,9 @@
   </xsl:template>
 
   <xsl:template match="/">
+    <m>
       <xsl:apply-templates select="@*|node()"/>
+    </m>
   </xsl:template>
 
   <xsl:template match="c">
