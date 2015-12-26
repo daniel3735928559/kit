@@ -175,7 +175,9 @@ Kit.prototype.render = function(){
 	    var r = plugin.render(nodes[0].cloneNode(true), base);
 	    var par = document.createElement("p");
 	    par.appendChild(r);
+	    console.log(nodes,nodes.length,"A");
 	    nodes[0].parentNode.replaceChild(par, nodes[0]);
+	    console.log(nodes,nodes.length,"B");
 	}
 	console.log(base);
     }

@@ -16,11 +16,11 @@ KitGuppyPlugin = function(kit){
     this.functions = [
 	{'key':'Shift-Alt-M',
 	 'name':'Math',
-	 'tag':"math",
+	 'tag':"guppy",
 	 'text':false,
 	 'func': function(cm) {
 	     var id = cm.kit_instance.gen_id();
-	     cm.replaceSelection("<math id=\""+id+"\">\n</math>");
+	     cm.replaceSelection("<guppy id=\""+id+"\">\n</guppy>");
 	     self.make_widget(id);
 	     var cur = cm.getCursor();
 	     cm.addLineWidget(cur.line-1, self.widgets[id], {coverGutter: false, noHScroll: true});
@@ -52,27 +52,19 @@ KitGuppyPlugin.prototype.cleanup = function(id){
 }
 
 KitGuppyPlugin.prototype.render = function(node, doc){
-
-    if(!this.xslt) return;
-    var node_doc = document.implementation.createDocument("", "", null);
-    node_doc.appendChild(node);
-    console.log("BD",node_doc);
-    return this.xslt.transformToFragment(node_doc, doc);
-    
+    console.log("ND",node,doc);
+    var expr = document.createElement("div");
     var id = node.getAttribute("id");
-    var canvas = this.widgets[id].getElementsByTagName("canvas")[0];
-    var data = canvas.toDataURL();
-    console.log("DATA",id,data)
-    var img = document.createElement("img");
-    img.setAttribute("src",data);
-    img.setAttribute("border","1px");
-    return img;
+    var latex = this.guppies[id].get_content('latex')
+    console.log("LLLL",id,latex);
+    katex.render(latex,expr);
+    return expr;
 }
 
 KitGuppyPlugin.prototype.edit = function(){ return ["",""] }
 
 KitGuppyPlugin.prototype.insert = function(){
-    var start = "<draw>";
-    var end = "</draw>";
+    var start = "<guppy>";
+    var end = "</guppy>";
     return {"data":start+end,"cursor":start.length};
 }
