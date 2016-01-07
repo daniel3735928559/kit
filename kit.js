@@ -1,4 +1,5 @@
 var Kit = function(args){
+    console.log("AA",args);
     var self = this;
     this.cur_id = 0;
     this.name = "";
@@ -71,6 +72,8 @@ var Kit = function(args){
     this.output = args.output;
     this.edit = args.edit;
     this.container = args.container;
+    
+    this.editor.setValue(args.data);
 
     for(var b in this.plugin_info.buttons){
 	var a = document.createElement("a");
