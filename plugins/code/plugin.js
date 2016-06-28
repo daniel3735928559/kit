@@ -7,7 +7,7 @@ KitCodePlugin = function(kit){
 	xsltProcessor.importStylesheet((new window.DOMParser()).parseFromString(this.responseText, "text/xml"));
 	self.xslt = xsltProcessor;
     };
-    req.open("get", "plugins/code/transform.xsl", true);
+    req.open("get", "/lib/kit/plugins/code/transform.xsl", true);
     req.send();
 
     this.functions = [

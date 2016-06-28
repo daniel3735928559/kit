@@ -6,7 +6,7 @@ KitArgumentPlugin = function(){
 	xsltProcessor.importStylesheet((new window.DOMParser()).parseFromString(this.responseText, "text/xml"));
 	self.xslt = xsltProcessor;
     };
-    req.open("get", "plugins/argument/transform.xsl", true);
+    req.open("get", "/lib/kit/plugins/argument/transform.xsl", true);
     req.send();
     this.functions = [
 	{'key':'Shift-Alt-S',
