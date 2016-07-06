@@ -13,6 +13,14 @@ var Kit = function(args){
 	foldGutter: true,
 	gutters: ["CodeMirror-linenumbers"]
     });
+    this.source_display = CodeMirror.fromTextArea(args.source, {
+	lineNumbers: true,
+	mode: "text/xml",
+	styleActiveLine: true,
+	readOnly: false, 
+	foldGutter: true,
+	gutters: ["CodeMirror-linenumbers"]
+    });
     this.editor.setOption("theme", "default");
     this.editor.kit_instance = this;
     this.editor.setSize(null, "75%");

@@ -1,16 +1,32 @@
 app = app || angular.module('app', []);
 
 app.controller("KitController", ['$scope', function($scope){
-    $scope.test = "hello";
+    $scope.modes = {
+	"view":function(){
+	    $scope.kit.source_display.setValue($scope.kit.get_text());
+	},
+	"edit":function(){
+	    $scope.kit.source_display.setValue($scope.kit.get_text());
+	},
+	"source":function(){
+	    $scope.output.innerHTML = "";
+	    $scope.output.appendChild($scope.kit.render());
+	}
+    };
+    $scope.set_mode = function(m){
+	$scope.mode = m;
+    }
     $scope.initialize = function(){
 	console.log("DATA",$scope.data);
 	$scope.kit = new Kit(
 	    {'input':$scope.input,
+	     'source':$scope.source,
 	     'container':$scope.container,
 	     'output':$scope.done,
 	     'data':$scope.data || "<node />"
 	    }
 	);
+	$scope.mode = "view";
     }
     $scope.done = function(doc){
 	console.log("DONE",$scope.change,$scope.data);
@@ -28,7 +44,6 @@ app.controller("KitController", ['$scope', function($scope){
 	    restrict: 'E',
 	    scope:{
 		data: '=data',
-		editing: '=editing',
 		finish: '=finish',
 		change: '=change',
 		nodeid: '=nodeid'
@@ -42,6 +57,7 @@ app.controller("KitController", ['$scope', function($scope){
 		console.log("linking");
 		scope.container = element[0].getElementsByClassName('kit_container')[0];
 		scope.input = element[0].getElementsByClassName('kit_area')[0];
+		scope.source = element[0].getElementsByClassName('kit_source_area')[0];
 		scope.output = element[0].getElementsByClassName('kit_output')[0];
 		scope.initialize();
 		scope.$watch('editing',function(oldValue, newValue){

@@ -1,4 +1,8 @@
-<div class="kit_container" ng-style="{'display':editing == true ? 'inline-block' : 'none'}">
+<span ng-repeat="(m,f) in modes" ng-click="set_mode(m);f()" class="kit_button">{{m}}</span>
+<div class="kit_container" ng-style="{'display':mode == 'edit' ? 'inline-block' : 'none'}">
   <textarea style="display:inline-block;" class="kit_area"></textarea>
 </div>
-<div ng-style="{'display':editing == false ? 'block' : 'none'}" class="kit_output"></div>
+<div class="kit_container" ng-style="{'display':mode == 'source' ? 'inline-block' : 'none'}">
+  <textarea style="display:inline-block;" class="kit_source_area"></textarea>
+</div>
+<div ng-style="{'display':mode == 'view' ? 'block' : 'none'}" class="kit_output"></div>
