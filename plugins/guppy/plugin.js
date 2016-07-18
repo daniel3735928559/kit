@@ -42,9 +42,7 @@ KitGuppyPlugin = function(kit){
     this.create_from_doc = function(cm, id, doc){
 	console.log("CFD",id, doc);
 	self.make_widget(id);
-	if(doc){
-	    self.guppies[id].set_content(doc);
-	}
+	if(doc) self.guppies[id].set_content(doc);
     }
 
     
@@ -66,6 +64,7 @@ KitGuppyPlugin.prototype.render = function(node){
 }
 
 KitGuppyPlugin.prototype.insert = function(cm, id, loc, doc){
+    console.log("ASD",cm,id,loc,doc);
     var self = this;
     if(!id) id = cm.kit_instance.gen_id();
     if(loc) cm.setSelection(loc.from, loc.to);
