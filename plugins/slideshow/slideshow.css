@@ -1,0 +1,20 @@
+.slideshow {
+    text-align: center;
+    border:2px solid black;
+    display:inline-block;
+}
+
+.slideshow_content {
+}
+
+.slideshow_caption {
+}
+
+.slideshow_button {
+    border-radius: 50%;
+    width:20px;
+    height:20px;
+    background-color:#990;
+    border: 3px solid black;
+    display:inline-block;
+}

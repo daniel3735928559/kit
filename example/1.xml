@@ -1,0 +1,21 @@
+<node>
+  This is an equation: <obj type="guppy"><m><e>x-</e><f type="sin"><b p="latex">\sin\left(<r ref="1"/>\right)</b><b p="text">sin(<r ref="1"/>)</b><c 
+  delete="1"><e>x</e></c></f><e></e></m></obj>
+  
+  This is a slideshow: 
+  
+  <obj type="slideshow">
+    <item>
+      <content><img src="data/1.png" /></content>
+      <caption>Thing 1</caption>
+    </item>
+    <item>
+      <content><img src="data/2.png" /></content>
+      <caption>Thing 2</caption>
+    </item>
+    <item>
+      <content><img src="data/3.png" /></content>
+      <caption>Thing 3</caption>
+    </item>
+  </obj>
+</node>
